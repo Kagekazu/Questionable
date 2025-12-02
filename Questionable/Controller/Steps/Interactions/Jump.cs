@@ -43,14 +43,14 @@ internal static class Jump
 
     internal abstract class JumpBase<T>(
         MovementController movementController,
-        IClientState clientState,
+        IObjectTable objectTable,
         IFramework framework) : TaskExecutor<T>
         where T : class, IJumpTask
     {
         protected override bool Start()
         {
             float stopDistance = Task.JumpDestination.CalculateStopDistance();
-            if ((clientState.LocalPlayer!.Position - Task.JumpDestination.Position).Length() <= stopDistance)
+            if ((objectTable.LocalPlayer!.Position - Task.JumpDestination.Position).Length() <= stopDistance)
                 return false;
 
             movementController.NavigateTo(EMovementType.Quest, Task.DataId, [Task.JumpDestination.Position], false,
@@ -84,8 +84,8 @@ internal static class Jump
 
     internal sealed class DoSingleJump(
         MovementController movementController,
-        IClientState clientState,
-        IFramework framework) : JumpBase<SingleJumpTask>(movementController, clientState, framework);
+        IObjectTable objectTable,
+        IFramework framework) : JumpBase<SingleJumpTask>(movementController, objectTable, framework);
 
     internal sealed record RepeatedJumpTask(
         uint? DataId,
@@ -97,13 +97,13 @@ internal static class Jump
 
     internal sealed class DoRepeatedJumps(
         MovementController movementController,
-        IClientState clientState,
+        IObjectTable objectTable,
         IFramework framework,
         ICondition condition,
         ILogger<DoRepeatedJumps> logger)
-        : JumpBase<RepeatedJumpTask>(movementController, clientState, framework)
+        : JumpBase<RepeatedJumpTask>(movementController, objectTable, framework)
     {
-        private readonly IClientState _clientState = clientState;
+        private readonly IObjectTable _objectTable = objectTable;
         private DateTime _continueAt = DateTime.MinValue;
         private int _attempts;
 
@@ -119,11 +119,12 @@ internal static class Jump
                 return ETaskResult.StillRunning;
 
             float stopDistance = Task.JumpDestination.CalculateStopDistance();
-            if ((_clientState.LocalPlayer!.Position - Task.JumpDestination.Position).Length() <= stopDistance ||
-                _clientState.LocalPlayer.Position.Y >= Task.JumpDestination.Position.Y - 0.5f)
+            if (_objectTable.LocalPlayer == null) return ETaskResult.StillRunning;
+            if ((_objectTable.LocalPlayer!.Position - Task.JumpDestination.Position).Length() <= stopDistance ||
+                _objectTable.LocalPlayer?.Position.Y >= Task.JumpDestination.Position.Y - 0.5f)
                 return ETaskResult.TaskComplete;
 
-            logger.LogTrace("Y-Heights for jumps: player={A}, target={B}", _clientState.LocalPlayer.Position.Y,
+            logger.LogTrace("Y-Heights for jumps: player={A}, target={B}", _objectTable.LocalPlayer?.Position.Y,
                 Task.JumpDestination.Position.Y - 0.5f);
             unsafe
             {

@@ -32,6 +32,7 @@ internal static class Mount
         ICondition condition,
         TerritoryData territoryData,
         IClientState clientState,
+        IObjectTable objectTable,
         ILogger<MountEvaluator> logger)
     {
         public unsafe MountResult EvaluateMountState(MountTask task, bool dryRun, ref DateTime retryAt)
@@ -55,7 +56,7 @@ internal static class Mount
 
             if (task.MountIf == EMountIf.AwayFromPosition)
             {
-                Vector3 playerPosition = clientState.LocalPlayer?.Position ?? Vector3.Zero;
+                Vector3 playerPosition = objectTable.LocalPlayer?.Position ?? Vector3.Zero;
                 float distance = System.Numerics.Vector3.Distance(playerPosition, task.Position.GetValueOrDefault());
                 if (task.TerritoryId == clientState.TerritoryType && distance < 30f && !Conditions.Instance()->Diving)
                 {
@@ -146,7 +147,7 @@ internal static class Mount
         ICondition condition,
         ILogger<UnmountTask> logger,
         GameFunctions gameFunctions,
-        IClientState clientState)
+        IObjectTable objectTable)
         : TaskExecutor<UnmountTask>
     {
         private bool _unmountTriggered;
@@ -204,10 +205,10 @@ internal static class Mount
 
         private unsafe bool IsUnmounting()
         {
-            IPlayerCharacter? localPlayer = clientState.LocalPlayer;
+            IPlayerCharacter? localPlayer = objectTable.LocalPlayer;
             if (localPlayer != null)
             {
-                BattleChara* battleChara = (BattleChara*) localPlayer.Address;
+                BattleChara* battleChara = (BattleChara*)localPlayer.Address;
                 return (battleChara->Mount.Flags & 1) == 1;
             }
 

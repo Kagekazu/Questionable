@@ -1,1 +1,3 @@
-- vanu 2172 position fix by alydev
+- Remove deprecated _clientState.LocalPlayer, code cleanup by alydev
+- Fix race condition when interacting with NPCs after combat by Brappp
+- A few spots were missed in deprecation by alydev

@@ -43,7 +43,7 @@ internal static class Craft
 
     internal sealed class DoCraft(
         IDataManager dataManager,
-        IClientState clientState,
+        IPlayerState playerState,
         ArtisanIpc artisanIpc,
         ILogger<DoCraft> logger,
         QuestController questController) : TaskExecutor<CraftTask>
@@ -56,19 +56,19 @@ internal static class Craft
             // Get the item quality requirement from the quest step (NQ, HQ, or Any)
             _itemQuality = GetItemQuality();
             int ownedCount = GetOwnedItemCount();
-            
+
             if (ownedCount >= Task.ItemCount)
             {
                 logger.LogInformation("Already own {ItemCount}x {ItemId}", Task.ItemCount, Task.ItemId);
                 return false;
             }
-            
+
             _startingItemCount = ownedCount;
             _previousCount = ownedCount;
 
             RecipeLookup? recipeLookup = dataManager.GetExcelSheet<RecipeLookup>().GetRowOrDefault(Task.ItemId) ??
                 throw new TaskException($"Item {Task.ItemId} is not craftable");
-            uint recipeId = (EClassJob)clientState.LocalPlayer!.ClassJob.RowId switch
+            uint recipeId = (EClassJob)playerState.ClassJob.RowId switch
             {
                 EClassJob.Carpenter => recipeLookup.Value.CRP.RowId,
                 EClassJob.Blacksmith => recipeLookup.Value.BSM.RowId,
@@ -113,16 +113,16 @@ internal static class Craft
         public override unsafe ETaskResult Update()
         {
             int currentCount = GetOwnedItemCount();
-            
+
             // Log only when item count changes
             if (currentCount != _previousCount)
             {
                 int craftedCount = currentCount - _startingItemCount;
-                logger.LogInformation("Craft progress: {Current}/{Target} items (crafted: {Crafted}, quality: {Quality})", 
+                logger.LogInformation("Craft progress: {Current}/{Target} items (crafted: {Crafted}, quality: {Quality})",
                     currentCount, Task.ItemCount, craftedCount, _itemQuality);
                 _previousCount = currentCount;
             }
-            
+
             // Check if we've reached the target count and crafting has stopped
             if (currentCount >= Task.ItemCount && !artisanIpc.IsCrafting())
             {
@@ -142,7 +142,7 @@ internal static class Craft
                     }
                 }
             }
-            
+
             return ETaskResult.StillRunning;
         }
 
